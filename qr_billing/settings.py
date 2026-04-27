@@ -15,7 +15,6 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(','
 UPI_ID = os.environ.get('UPI_ID', 'yourname@upi')
 STORE_NAME = os.environ.get('STORE_NAME', 'My Store')
 
-ALLOWED_HOSTS = []
 
 
 # ---------------- INSTALLED APPS ----------------
