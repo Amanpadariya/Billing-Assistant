@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <div>
+                <h3 class="fw-bold mb-0">👤 Customer Form</h3>
+                <small class="text-muted">Add or update customer information</small>
+            </div>
+
+            <a href="{% url 'customers:customer_list' %}"
+            class="btn btn-outline-secondary">
+                ← Back to Customers
+            </a>
+
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="row g-3">
+
+            <!-- Customer Name -->
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Customer Name</label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                    <div class="text-danger small mt-1">
+                        {{ form.name.errors.0 }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Phone -->
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Phone Number</label>
+                {{ form.phone }}
+                {% if form.phone.errors %}
+                    <div class="text-danger small mt-1">
+                        {{ form.phone.errors.0 }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Email -->
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Email</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                    <div class="text-danger small mt-1">
+                        {{ form.email.errors.0 }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Address -->
+            <div class="col-md-12">
+                <label class="form-label fw-semibold">Address</label>
+                {{ form.address }}
+                {% if form.address.errors %}
+                    <div class="text-danger small mt-1">
+                        {{ form.address.errors.0 }}
+                    </div>
+                {% endif %}
+            </div>
+
+        </div>
+
+            <!-- Buttons -->
+            <div class="mt-4">
+                <button type="submit" class="btn btn-success">
+                    💾 Save Customer
+                </button>
+
+                <a href="{% url 'customers:customer_list' %}"
+                   class="btn btn-outline-secondary ms-2">
+                    Cancel
+                </a>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+<!-- JS VALIDATION -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const phoneInput = document.querySelector("input[name='phone']");
+    if (phoneInput) {
+        phoneInput.addEventListener("input", function () {
+            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
+        });
+    }
+});
+</script>
+
+{% endblock %}

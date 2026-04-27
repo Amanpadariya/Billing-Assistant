@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h3 class="mb-4">Customer History</h3>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="mb-1">{{ customer.name }}</h5>
+        <p class="text-muted mb-0">
+            Phone: {{ customer.phone }}
+        </p>
+    </div>
+</div>
+
+
+<h4 class="mb-3">Bills</h4>
+
+{% if bills %}
+    {% for bill in bills %}
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+
+                <div class="row">
+                    <div class="col-md-8">
+                        <p class="mb-1">
+                            <strong>Invoice:</strong> {{ bill.invoice_number }}
+                        </p>
+                        <p class="mb-1">
+                            <strong>Status:</strong>
+                            {% if bill.payment_status == "PAID" %}
+                                <span class="badge bg-success">Paid</span>
+                            {% elif bill.payment_status == "PENDING" %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            {% elif bill.payment_status == "CANCELLED" %}
+                                <span class="badge bg-danger">Cancelled</span>
+                            {% endif %}
+                        </p>
+                        <p class="mb-1">
+                            <strong>Date:</strong>
+                            {{ bill.created_at|date:"d M Y, h:i A" }}
+                        </p>
+                        <p class="mb-0">
+                            <strong>Total:</strong>
+                            ₹ {{ bill.total_amount }}
+                        </p>
+                    </div>
+
+                    <div class="col-md-4 text-end align-self-center">
+                      {% if bill.invoice_number %}
+                        <a href="{% url 'billing:invoice_detail' bill.invoice_number %}"
+                        class="btn btn-primary btn-sm">
+                            View Details
+                        </a>
+                        {% else %}
+                        <button class="btn btn-secondary btn-sm" disabled>
+                            Invoice Not Ready
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="card shadow-sm">
+        <div class="card-body text-center">
+            No bills found.
+        </div>
+    </div>
+{% endif %}
+
+{% endblock %}

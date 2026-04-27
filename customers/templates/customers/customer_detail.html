@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card shadow mb-4">
+    <div class="card-header">
+        <h4>{{ customer.name }}</h4>
+    </div>
+    <div class="card-body">
+        <p><strong>Phone:</strong> {{ customer.phone }}</p>
+        <p><strong>Email:</strong> {{ customer.email }}</p>
+        <p><strong>Address:</strong> {{ customer.address }}</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center bg-light">
+            <div class="card-body">
+                <h5>Total Bills</h5>
+                <h3>{{ total_bills }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center bg-success text-white">
+            <div class="card-body">
+                <h5>Paid Bills</h5>
+                <h3>{{ total_paid }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center bg-danger text-white">
+            <div class="card-body">
+                <h5>Unpaid Bills</h5>
+                <h3>{{ total_unpaid }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center bg-primary text-white">
+            <div class="card-body">
+                <h5>Total Amount</h5>
+                <h3>₹ {{ total_amount }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow">
+    <div class="card-header">
+        <h5>Bill History</h5>
+    </div>
+    <div class="card-body">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Invoice ID</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bill in bills %}
+                <tr>
+                    <td>{{ bill.id }}</td>
+                    <td>{{ bill.created_at }}</td>
+                    <td>{{ bill.payment_status_dynamic }}</td>
+                    <td>₹ {{ bill.total_amount }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center">No Bills Found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

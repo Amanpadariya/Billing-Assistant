@@ -1,0 +1,169 @@
+{% for bill in page_obj %}
+
+<tr id="bill{{ bill.id }}" class="bill-row">
+    <td class="fw-semibold text-muted">#{{ bill.id }}</td>
+
+<td>
+    <div class="fw-semibold customer-name">
+        {% if bill.customer_name %}
+            {{ bill.customer_name }}
+        {% else %}
+            {{ bill.customer.name }}
+        {% endif %}
+    </div>
+</td>
+
+<td class="fw-semibold text-success">₹ {{ bill.total_amount }}</td>
+<td class="fw-semibold text-primary">₹ {{ bill.total_paid }}</td>
+<td class="fw-semibold text-danger">₹ {{ bill.remaining_amount }}</td>
+
+<td>
+{% if bill.payment_status == "PAID" %}
+<span class="badge status-badge success">Paid</span>
+
+{% elif bill.payment_status == "PARTIAL" %}
+<span class="badge status-badge info">Partial</span>
+
+{% elif bill.payment_status == "UNPAID" %}
+<span class="badge status-badge danger">Unpaid</span>
+
+{% elif bill.payment_status == "DRAFT" %}
+<span class="badge status-badge warning">Draft</span>
+
+{% elif bill.payment_status == "CANCELLED" %}
+<span class="badge status-badge secondary">Cancelled</span>
+{% endif %}
+</td>
+
+<td class="text-muted small">
+    {{ bill.created_at|date:"d M Y" }}
+</td>
+
+<td>
+<div class="d-flex flex-wrap gap-1 action-buttons">
+
+<!-- VIEW -->
+{% if bill.invoice_number %}
+<a href="{% url 'billing:invoice_detail' bill.invoice_number %}?page={{ page_obj.number }}{% if selected_status %}&status={{ selected_status }}{% endif %}"
+   class="btn btn-sm btn-soft-info"
+   data-bs-toggle="tooltip"
+   title="View Invoice">
+   <i class="fa-solid fa-eye"></i>
+</a>
+{% else %}
+<button class="btn btn-sm btn-secondary" disabled title="Invoice not ready">
+   <i class="fa-solid fa-eye"></i>
+</button>
+{% endif %}
+
+<!-- EDIT -->
+{% if bill.payment_status != "PAID" and bill.payment_status != "CANCELLED" %}
+<a href="{% url 'pos:add_items' bill.id %}?page={{ page_obj.number }}{% if selected_status %}&status={{ selected_status }}{% endif %}"
+   class="btn btn-sm btn-soft-primary"
+   data-bs-toggle="tooltip"
+   title="Edit Bill">
+   <i class="fa-solid fa-pen"></i>
+</a>
+{% endif %}
+
+<!-- DRAFT → UNPAID -->
+{% if bill.payment_status == "DRAFT" %}
+<a href="{% url 'staffpanel:toggle_bill_status' bill.id %}"
+   class="btn btn-sm btn-soft-warning"
+   data-bs-toggle="tooltip"
+   title="Confirm Bill">
+   <i class="fa-solid fa-file-circle-check"></i>
+</a>
+{% endif %}
+
+<!-- CANCEL -->
+{% if bill.payment_status != "CANCELLED" and bill.payment_status != "PAID" %}
+<form method="POST"
+      action="{% url 'staffpanel:cancel_bill' bill.id %}?page={{ page_obj.number }}"
+      style="display:inline;">
+    {% csrf_token %}
+
+    <button type="submit"
+            class="btn btn-sm btn-soft-danger"
+            data-bs-toggle="tooltip"
+            title="Cancel Bill"
+            onclick="return confirm('Cancel this bill?')">
+        <i class="fa-solid fa-ban"></i>
+    </button>
+</form>
+{% endif %}
+
+<!-- DELETE -->
+{% if bill.payment_status == "DRAFT" %}
+<a href="{% url 'staffpanel:delete_bill' bill.id %}"
+   class="btn btn-sm btn-soft-danger"
+   data-bs-toggle="tooltip"
+   title="Delete Bill">
+   <i class="fa-solid fa-trash"></i>
+</a>
+{% endif %}
+
+<!-- PAY BUTTON (FIXED) -->
+{% if bill.payment_status != "PAID" and bill.payment_status != "CANCELLED" %}
+<button class="btn btn-sm btn-soft-success"
+        data-bs-toggle="collapse"
+        data-bs-target="#pay{{ bill.id }}"
+        title="Add Payment">
+    <i class="fa-solid fa-money-bill"></i>
+</button>
+{% endif %}
+
+<!-- HISTORY -->
+<a href="{% url 'payments:bill_payments' bill.id %}?page={{ page_obj.number }}
+    {% if selected_status %}&status={{ selected_status }}{% endif %}
+    {% if search_query %}&q={{ search_query }}{% endif %}
+    &open={{ bill.id }}"   
+   class="btn btn-sm btn-soft-dark"
+   data-bs-toggle="tooltip"
+   title="Payment History">
+   <i class="fa-solid fa-clock-rotate-left"></i>
+</a>
+
+<!-- PAYMENT FORM (FIXED) -->
+{% if bill.payment_status != "PAID" and bill.payment_status != "CANCELLED" %}
+<div id="pay{{ bill.id }}" class="collapse mt-2">
+    <div class="card payment-card">
+
+        <form method="post" action="{% url 'payments:add_payment' bill.id %}">
+            {% csrf_token %}
+
+            <input type="hidden" name="page" value="{{ page_obj.number }}">
+            <input type="hidden" name="status" value="{{ selected_status }}">
+
+            <input type="number" step="0.01" name="amount"
+                   class="form-control form-control-sm mb-2"
+                   placeholder="Enter amount" required>
+
+            <select name="method" class="form-control form-control-sm mb-2">
+                <option value="CASH">Cash</option>
+                <option value="UPI">UPI</option>
+                <option value="CARD">Card</option>
+            </select>
+
+            <button class="btn btn-sm btn-success w-100">
+                Add Payment
+            </button>
+
+        </form>
+
+    </div>
+</div>
+{% endif %}
+
+</div>
+</td>
+
+</tr>
+
+{% empty %}
+<tr>
+<td colspan="8" class="text-center text-muted py-4">
+No bills found
+</td>
+</tr>
+{% endfor %}

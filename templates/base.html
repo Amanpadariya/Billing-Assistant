@@ -1,0 +1,313 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>QR Billing Assistant</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Select2 CSS -->
+<link rel="stylesheet" href="{% static 'css/select2.min.css' %}">
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<!-- Google Font -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+</head>
+
+<body>
+
+<div class="d-flex">
+
+    <!-- ================= SIDEBAR ================= -->
+    <div class="sidebar position-fixed top-0 start-0 bg-dark text-white">
+
+        <!-- TOP -->
+        <div class="p-3">
+            <div class="mb-4 text-center">
+                <h5 class="fw-bold mb-0">QR Billing</h5>
+                <small class="text-secondary">Admin Panel</small>
+            </div>
+            <hr>
+        </div>
+
+        <!-- SCROLLABLE MENU -->
+        <div class="sidebar-menu px-2">
+
+            <ul class="nav flex-column">
+
+                <li class="nav-item mb-2">
+                    <a href="{% url 'staffpanel:dashboard' %}"
+                       class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                        <i class="fa-solid fa-chart-line me-2"></i>
+                        Dashboard
+                    </a>
+                </li>
+
+                {% if request.user.role == "ADMIN" or request.user.role == "STAFF" %}
+                <li class="nav-item mb-2">
+                    <a href="{% url 'products:product_list' %}"
+                       class="nav-link {% if request.resolver_match.url_name == 'product_list' %}active{% endif %}">
+                        <i class="fa-solid fa-box me-2"></i>
+                        Products
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if request.user.is_authenticated %}
+                <li class="nav-item mb-2">
+                    <a href="{% url 'customers:customer_list' %}"
+                       class="nav-link {% if request.resolver_match.url_name == 'customer_list' %}active{% endif %}">
+                        <i class="fa-solid fa-users me-2"></i>
+                        Customers
+                    </a>
+                </li>
+                {% endif %}
+
+                <li class="nav-item mb-2">
+                    <a href="{% url 'staffpanel:bill_list' %}"
+                       class="nav-link {% if request.resolver_match.url_name == 'bill_list' %}active{% endif %}">
+                        <i class="fa-solid fa-file-invoice me-2"></i>
+                        Bills
+                    </a>
+                </li>
+
+                <div class="sidebar-title">Actions</div>
+
+                <li class="nav-item mb-2">
+                    <a class="nav-link d-flex justify-content-between align-items-center"
+                       data-bs-toggle="collapse"
+                       href="#quickActionsMenu">
+
+                        <span>
+                            <i class="fa-solid fa-bolt me-2"></i>
+                            Quick Actions
+                        </span>
+
+                        <i class="fa-solid fa-chevron-down small"></i>
+                    </a>
+
+                    <div class="collapse ps-2
+                    {% if request.resolver_match.url_name == 'add_product' or request.resolver_match.url_name == 'add_customer' or request.resolver_match.url_name == 'create_bill' or request.resolver_match.url_name == 'scan_invoice' %}show{% endif %}"
+                    id="quickActionsMenu">
+
+                        <ul class="nav flex-column mt-2">
+
+                            {% if request.user.role == "ADMIN" or request.user.role == "STAFF" %}
+                            <li class="nav-item mb-1">
+                                <a href="{% url 'products:add_product' %}"
+                                   class="nav-link {% if request.resolver_match.url_name == 'add_product' %}active{% endif %}">
+                                    <i class="fa-solid fa-plus me-2"></i> Add Product
+                                </a>
+                            </li>
+                            {% endif %}
+
+                            {% if request.user.is_authenticated %}
+                            <li class="nav-item mb-1">
+                                <a href="{% url 'customers:add_customer' %}"
+                                   class="nav-link {% if request.resolver_match.url_name == 'add_customer' %}active{% endif %}">
+                                    <i class="fa-solid fa-user-plus me-2"></i> Add Customer
+                                </a>
+                            </li>
+                            {% endif %}
+
+                            <li class="nav-item mb-1">
+                                <a href="{% url 'staffpanel:create_bill' %}"
+                                   class="nav-link {% if request.resolver_match.url_name == 'create_bill' %}active{% endif %}">
+                                    <i class="fa-solid fa-receipt me-2"></i> Create Bill
+                                </a>
+                            </li>
+
+                           
+
+                        </ul>
+                    </div>
+                </li>
+
+            </ul>
+        </div>
+
+        <!-- FIXED FOOTER -->
+        <div class="sidebar-footer p-3">
+            <hr>
+
+            {% if request.user.is_authenticated %}
+            <a href="{% url 'account:logout' %}" class="btn btn-danger w-100">
+                <i class="fa-solid fa-right-from-bracket me-1"></i>
+                Logout
+            </a>
+            {% else %}
+            <a href="{% url 'account:login' %}" class="btn btn-success w-100">
+                <i class="fa-solid fa-right-to-bracket me-1"></i>
+                Login
+            </a>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <!-- ================= MAIN ================= -->
+    <div class="flex-grow-1" style="margin-left:260px;">
+
+        <!-- NAVBAR -->
+        <nav class="navbar bg-white shadow-sm px-4 d-flex justify-content-between align-items-center"
+             style="position:sticky; top:0; z-index:1000; height:60px;">
+
+            <span class="fw-semibold fs-5">Billing Dashboard</span>
+
+            <div class="d-flex align-items-center gap-2">
+                <div style="
+                    width:34px;
+                    height:34px;
+                    border-radius:50%;
+                    background:#4f46e5;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    color:white;">
+                    {{ request.user.username|first|upper }}
+                </div>
+
+                <small class="text-muted">
+                    {{ request.user.username }} ({{ request.user.role }})
+                </small>
+            </div>
+
+        </nav>
+
+        <!-- CONTENT -->
+        <div class="p-4">
+            {% block content %}{% endblock %}
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ================= TOAST CONTAINER ================= -->
+<div id="toast-container" style="
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+"></div>
+
+<!-- ================= SCRIPTS (ORDER MATTERS!) ================= -->
+
+<!-- 1. jQuery FIRST — required by Select2 -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- 2. Bootstrap JS (can benefit from jQuery being present) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- 3. Select2 JS AFTER jQuery -->
+<script src="{% static 'js/select2.min.js' %}"></script>
+<!-- 4. Custom Scripts -->
+<script>
+
+    /* ==============================
+       TOAST UTILITY (single definition)
+    ============================== */
+    function showToast(message, type = "success") {
+        let toast = document.createElement("div");
+
+        toast.innerText = message;
+        toast.style.padding      = "10px 15px";
+        toast.style.marginTop    = "10px";
+        toast.style.borderRadius = "8px";
+        toast.style.color        = "white";
+        toast.style.fontSize     = "14px";
+        toast.style.boxShadow    = "0 4px 10px rgba(0,0,0,0.2)";
+        toast.style.opacity      = "0";
+        toast.style.transition   = "0.3s";
+
+        if (type.includes("error")) {
+            toast.style.background = "#dc3545";
+        } else if (type.includes("warning")) {
+            toast.style.background = "#ffc107";
+            toast.style.color      = "#000";
+        } else {
+            toast.style.background = "#198754";
+        }
+
+        document.getElementById("toast-container").appendChild(toast);
+
+        setTimeout(() => toast.style.opacity = "1", 50);
+
+        setTimeout(() => {
+            toast.style.opacity = "0";
+            setTimeout(() => toast.remove(), 300);
+        }, 2500);
+    }
+
+    /* ==============================
+       SIDEBAR: SCROLL RESTORE + AUTO-SCROLL
+    ============================== */
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const sidebarMenu = document.querySelector(".sidebar-menu");
+        const quickMenu   = document.getElementById("quickActionsMenu");
+
+        // Restore sidebar scroll position after page load
+        if (sidebarMenu) {
+            const savedScroll = localStorage.getItem("sidebarScroll");
+
+            if (savedScroll !== null) {
+                setTimeout(() => {
+                    sidebarMenu.scrollTop = parseInt(savedScroll, 10);
+                }, 100);
+            }
+
+            sidebarMenu.addEventListener("scroll", function () {
+                localStorage.setItem("sidebarScroll", sidebarMenu.scrollTop);
+            });
+        }
+
+        // Auto-scroll sidebar when Quick Actions menu opens
+        if (quickMenu && sidebarMenu) {
+            quickMenu.addEventListener("shown.bs.collapse", function () {
+                setTimeout(() => {
+                    const rect   = quickMenu.getBoundingClientRect();
+                    const parent = sidebarMenu.getBoundingClientRect();
+
+                    if (rect.bottom > parent.bottom) {
+                        sidebarMenu.scrollBy({
+                            top: rect.bottom - parent.bottom + 20,
+                            behavior: "smooth"
+                        });
+                    }
+
+                    if (rect.top < parent.top) {
+                        sidebarMenu.scrollBy({
+                            top: rect.top - parent.top - 20,
+                            behavior: "smooth"
+                        });
+                    }
+                }, 50);
+            });
+        }
+
+    });
+
+</script>
+
+<!-- 5. Auto-trigger Django messages as toasts -->
+{% if messages %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        {% for message in messages %}
+            showToast("{{ message|escapejs }}", "{{ message.tags }}");
+        {% endfor %}
+    });
+</script>
+{% endif %}
+
+</body>
+</html>

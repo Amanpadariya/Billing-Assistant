@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <div>
+        <h3 class="fw-bold mb-0">
+            📦 Product Form
+        </h3>
+        <small class="text-muted">Add or update product information</small>
+    </div>
+
+    <a href="{% url 'products:product_list' %}"
+       class="btn btn-outline-secondary">
+        ← Back to Products
+    </a>
+
+</div>
+
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-body">
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="row g-3">
+
+                <!-- Product Name -->
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        Product Name
+                    </label>
+                    {{ form.name }}
+                </div>
+
+
+                <!-- Price -->
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        Price
+                    </label>
+                    {{ form.price }}
+                </div>
+
+
+                <!-- Stock -->
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        Stock Quantity
+                    </label>
+                    {{ form.stock_quantity }}
+                </div>
+
+
+                <!-- Low Stock Threshold -->
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                        Low Stock Alert
+                    </label>
+                    {{ form.low_stock_threshold }}
+                </div>
+
+
+                <!-- Active Status -->
+                <div class="col-md-6">
+                    <div class="form-check mt-4">
+                        {{ form.is_active }}
+                        <label class="form-check-label ms-2">
+                            Product Active
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+
+            <!-- Buttons -->
+            <div class="mt-4">
+
+                <button type="submit"
+                        class="btn btn-success">
+                    💾 Save Product
+                </button>
+
+                <a href="{% url 'products:product_list' %}"
+                   class="btn btn-outline-secondary ms-2">
+                    Cancel
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

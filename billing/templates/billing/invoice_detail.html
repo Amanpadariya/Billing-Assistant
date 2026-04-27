@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card shadow-sm invoice-card">
+
+<!-- Header -->
+<div class="card-header invoice-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">
+        <i class="fa-solid fa-file-invoice me-2"></i>
+        Invoice #{{ bill.invoice_number }}
+        <small class="text-muted ms-2">(#{{ bill.id }})</small>
+    </h5>
+
+    <div>
+        <a href="{% url 'staffpanel:invoice_pdf' bill.invoice_number %}"
+           class="btn btn-light btn-sm me-2">
+           <i class="fa-solid fa-download"></i> PDF
+        </a>
+
+        <button onclick="window.print()" class="btn btn-light btn-sm">
+            <i class="fa-solid fa-print"></i> Print
+        </button>
+    </div>
+</div>
+
+<div class="card-body">
+
+<!-- Shop Header -->
+<div class="text-center mb-4">
+    <h4 class="fw-bold mb-1">BrainyBeam Store</h4>
+    <p class="mb-0 text-muted">123 Market Road, Surat</p>
+    <p class="mb-0 text-muted">Phone: +91 98765 43210</p>
+    <p class="text-muted small">GSTIN: 24ABCDE1234F1Z5</p>
+    <hr>
+</div>
+
+<!-- Customer & Invoice Info -->
+<div class="row mb-4">
+
+    <!-- Customer -->
+    <div class="col-md-6">
+        <h6 class="section-title">
+            <i class="fa-solid fa-user me-1"></i> Customer
+        </h6>
+
+        <p class="mb-1 fw-semibold">{{ bill.display_customer }}</p>
+
+        <p class="text-muted small mb-0">
+            Invoice #: {{ bill.invoice_number }}
+        </p>
+
+        <p class="text-muted small mb-0">
+            {% if bill.customer_phone %}
+                {{ bill.customer_phone }}
+            {% else %}
+                {{ bill.customer.phone }}
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Invoice Info -->
+    <div class="col-md-6 text-md-end">
+        <h6 class="section-title">
+            <i class="fa-solid fa-circle-info me-1"></i> Details
+        </h6>
+
+        <p class="mb-1">
+            {% if bill.payment_status == "PAID" %}
+                <span class="badge bg-success">Paid</span>
+            {% elif bill.payment_status == "PARTIAL" %}
+                <span class="badge bg-info text-dark">Partial</span>
+            {% elif bill.payment_status == "UNPAID" %}
+                <span class="badge bg-warning text-dark">Unpaid</span>
+            {% elif bill.payment_status == "DRAFT" %}
+                <span class="badge bg-secondary">Draft</span>
+            {% elif bill.payment_status == "CANCELLED" %}
+                <span class="badge bg-danger">Cancelled</span>
+            {% endif %}
+        </p>
+
+        <p class="text-muted small">
+            {{ bill.created_at|date:"d M Y, h:i A" }}
+        </p>
+    </div>
+
+</div>
+
+<!-- Items Table -->
+<div class="table-responsive">
+<table class="table table-hover align-middle modern-table">
+
+<thead>
+<tr>
+<th>Item</th>
+<th width="120">Qty</th>
+<th width="150">Price</th>
+<th width="150">Total</th>
+</tr>
+</thead>
+
+<tbody>
+{% for item in items %}
+<tr>
+<td class="fw-semibold">{{ item.product.name }}</td>
+<td>{{ item.quantity }}</td>
+<td>₹ {{ item.product.price }}</td>
+<td class="fw-semibold text-success">₹ {{ item.total_price }}</td>
+</tr>
+{% empty %}
+<tr>
+<td colspan="4" class="text-center text-muted py-4">
+No items found
+</td>
+</tr>
+{% endfor %}
+</tbody>
+
+</table>
+</div>
+
+<!-- Totals -->
+<div class="row mt-4">
+<div class="col-md-6"></div>
+
+<div class="col-md-6">
+<div class="card invoice-total-card">
+<div class="card-body">
+
+<div class="d-flex justify-content-between mb-2">
+<span class="text-muted">Subtotal</span>
+<span>₹ {{ bill.total_amount|floatformat:2 }}</span>
+</div>
+
+<div class="d-flex justify-content-between mb-2">
+<span class="text-muted">Paid</span>
+<span class="text-success">₹ {{ bill.total_paid }}</span>
+</div>
+
+<div class="d-flex justify-content-between mb-2">
+<span class="text-muted">Remaining</span>
+<span class="text-danger">₹ {{ bill.remaining_amount }}</span>
+</div>
+
+<hr>
+
+<div class="d-flex justify-content-between fw-bold fs-5">
+<span>Total</span>
+<span class="text-success">₹ {{ bill.total_amount }}</span>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+
+<!-- Payment History -->
+<hr>
+<h6 class="section-title mt-4">Payment History</h6>
+
+<table class="table table-sm modern-table">
+<thead>
+<tr>
+<th>Amount</th>
+<th>Method</th>
+<th>Date</th>
+</tr>
+</thead>
+
+<tbody>
+{% for payment in bill.payments.all|dictsortreversed:"date" %}
+{% if not payment.is_deleted %}
+<tr>
+<td>₹ {{ payment.amount }}</td>
+<td>{{ payment.method }}</td>
+<td class="text-muted small">{{ payment.date|date:"d M Y, h:i A" }}</td>
+</tr>
+{% endif %}
+{% empty %}
+<tr>
+<td colspan="3" class="text-center text-muted">
+No payments yet
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+<!-- QR Section -->
+<hr>
+
+<div class="text-center mt-4">
+
+{% if bill.payment_status == "CANCELLED" %}
+    <h6 class="text-danger">
+        <i class="fa-solid fa-ban"></i> Bill Cancelled
+    </h6>
+
+{% elif bill.remaining_amount == 0 %}
+    <h6 class="text-success">
+        <i class="fa-solid fa-circle-check"></i> Fully Paid
+    </h6>
+
+{% elif bill.qr_code %}
+    <h6 class="mb-2">
+        <i class="fa-solid fa-qrcode"></i>
+        Scan to Pay ₹ {{ bill.remaining_amount }}
+    </h6>
+
+    <img src="{{ bill.qr_code.url }}"
+         width="200"
+         class="img-fluid border rounded p-2 shadow-sm">
+
+    <p class="text-muted small mt-2">
+        UPI Payment (GPay / PhonePe / Paytm)
+    </p>
+{% endif %}
+
+{% if bill.payment_status != "CANCELLED" and bill.remaining_amount > 0 %}
+
+<button class="btn btn-success mt-3" data-bs-toggle="collapse" data-bs-target="#pay{{ bill.id }}">
+    <i class="fa-solid fa-money-bill"></i> Add Payment
+</button>
+
+<div id="pay{{ bill.id }}" class="collapse mt-3">
+    <div class="card p-3">
+
+        <form method="post" action="{% url 'payments:add_payment' bill.id %}">
+            {% csrf_token %}
+            {% if bill.invoice_number %}
+            <input type="hidden" name="next" value="{% url 'billing:invoice_detail' bill.invoice_number %}">
+            {% else %}
+            <input type="hidden" name="next" value="{% url 'pos:add_items' bill.id %}">
+            {% endif %}
+            <input type="number" step="0.01" name="amount"
+                   class="form-control mb-2"
+                   placeholder="Enter amount" required>
+
+            <select name="method" class="form-control mb-2">
+                <option value="CASH">Cash</option>
+                <option value="UPI">UPI</option>
+                <option value="CARD">Card</option>
+            </select>
+
+            <button type="submit" class="btn btn-success w-100">
+                Submit Payment
+            </button>
+
+        </form>
+
+    </div>
+</div>
+
+{% endif %}
+
+</div>
+
+<!-- Footer -->
+<hr>
+<div class="text-center mt-4">
+<p class="fw-semibold mb-1">Thank you for shopping with us!</p>
+<p class="text-muted small">This is a computer generated invoice.</p>
+</div>
+
+</div>
+</div>
+
+<!-- Bottom Buttons -->
+<div class="mt-4 text-center">
+
+<a href="{% url 'staffpanel:bill_list' %}?page={{ request.GET.page|default:1 }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}#bill{{ bill.id }}"
+class="btn btn-outline-secondary me-2">
+<i class="fa-solid fa-arrow-left"></i> Back
+</a>
+
+<a href="{% url 'staffpanel:create_bill' %}" class="btn btn-primary">
+<i class="fa-solid fa-plus"></i> New Bill
+</a>
+
+</div>
+
+{% endblock %}

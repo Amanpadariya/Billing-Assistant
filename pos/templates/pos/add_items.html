@@ -1,0 +1,648 @@
+{% extends "base.html" %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+{% block content %}
+
+<style>
+.pos-container{ padding:20px; }
+.pos-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+.product-section{ height:70vh; overflow-y:auto; border-right:1px solid #e5e5e5; padding-right:15px; }
+.bill-section{ height:70vh; overflow-y:auto; padding-left:15px; }
+.product-card{ cursor:pointer; transition:0.2s; }
+.product-card:hover{ transform:scale(1.03); }
+.product-card .card{ border-radius:12px; }
+.total-box{ font-size:24px; font-weight:600; color:#198754; }
+.search-box{ margin-bottom:15px; }
+.bill-table th{ font-size:14px; }
+</style>
+
+<div class="container-fluid pos-container">
+
+<!-- HEADER -->
+<div class="pos-header">
+
+    <div>
+        <h4 class="mb-1">
+            Billing - Invoice {{ bill.invoice_number }}
+        </h4>
+        <small class="text-muted">
+            Customer: {{ bill.customer.name }}
+        </small>
+    </div>
+
+    <div>
+        <a href="{% url 'staffpanel:bill_list' %}?page={{ request.GET.page }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}#bill{{ bill.id }}"
+           class="btn btn-secondary"
+           onclick="return confirm('Discard this bill and go back?')">
+            Cancel
+        </a>
+
+        {% if bill.invoice_number %}
+        <a href="{% url 'billing:invoice_detail' bill.invoice_number %}?page={{ page }}{% if status %}&status={{ status }}{% endif %}"
+           class="btn btn-success">
+            Finish
+        </a>
+        {% else %}
+        <a href="{% url 'pos:add_items' bill.id %}" class="btn btn-secondary">
+            Finish
+        </a>
+        {% endif %}
+    </div>
+
+</div>
+
+<div class="row">
+
+<!-- PRODUCTS -->
+<div class="col-7 product-section">
+
+<input type="text" id="productSearch" class="form-control search-box" placeholder="Search product...">
+
+<div class="row" id="productContainer">
+
+<div id="noProductMsg" class="text-center text-muted w-100 d-none">
+    No product found
+</div>
+
+{% for product in products %}
+<div class="col-6 col-md-4 mb-3">
+
+    <div class="card shadow-sm h-100 border-0 product-card transition-all"
+         data-name="{{ product.name|lower }}"
+        onclick="addProduct('{{ bill.id }}', {{ product.id }}, this)" >
+
+        <div class="card-body text-center">
+            <h6 class="fw-bold product-name" data-original="{{ product.name }}">
+                {{ product.name }}
+            </h6>
+            <div class="text-success fw-bold">₹ {{ product.price }}</div>
+            <small class="text-muted">Tap to add</small>
+        </div>
+
+    </div>
+
+</div>
+{% endfor %}
+
+</div>
+</div>
+
+<!-- BILL -->
+<div class="col-5 bill-section">
+
+<h5 class="mb-3">Bill Items</h5>
+
+<table class="table table-sm table-striped">
+
+<thead>
+<tr>
+<th>Item</th>
+<th>Qty</th>
+<th>Total</th>
+<th></th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for item in items %}
+<tr data-id="{{ item.id }}">
+
+<td>{{ item.product.name }}</td>
+
+<td>
+<button onclick="changeQty({{ item.id }}, -1)">-</button>
+<span class="qty">{{ item.quantity }}</span>
+<button onclick="changeQty({{ item.id }}, 1)">+</button>
+</td>
+
+<td class="item-total">₹ {{ item.total_price }}</td>
+
+<td>
+<button onclick="deleteItem({{ item.id }})">X</button>
+</td>
+
+</tr>
+{% empty %}
+<tr><td colspan="4">No items</td></tr>
+{% endfor %}
+
+</tbody>
+
+</table>
+
+<hr>
+
+<h4>Total: ₹ {{ bill.total_amount }}</h4>
+
+</div>
+
+</div>
+</div>
+
+<script>
+function getCSRF(){
+    return document.cookie.split('; ')
+        .find(row => row.startsWith('csrftoken'))
+        ?.split('=')[1];
+}
+let isAdding = false;
+let selectedIndex = -1; 
+let searchMode = true;
+
+function addProduct(billId, productId, el){
+
+    if(isAdding) return;
+
+    isAdding = true;
+
+    // 🔥 UI FEEDBACK
+    if(el){
+        el.classList.add("product-added");   // 🔥 flash effect
+
+        setTimeout(() => {
+            el.classList.remove("product-added");
+        }, 300);
+    }
+
+    fetch(`/pos/quick/${billId}/${productId}/`)
+    .then(res => res.json())
+    .then(data => {
+
+        if(data.error){
+            showToast(data.error, "error");
+
+            isAdding = false;
+            return;
+        }
+
+        let existingRow = document.querySelector(`tr[data-id="${data.item_id}"]`);
+
+        if(existingRow){
+            existingRow.querySelector(".qty").innerText = data.quantity;
+            existingRow.querySelector(".item-total").innerText = "₹ " + data.item_total;
+        }else{
+            let row = `
+            <tr data-id="${data.item_id}">
+                <td>${data.product_name}</td>
+                <td>
+                    <button onclick="changeQty(${data.item_id}, -1)">-</button>
+                    <span class="qty">${data.quantity}</span>
+                    <button onclick="changeQty(${data.item_id}, 1)">+</button>
+                </td>
+                <td class="item-total">₹ ${data.item_total}</td>
+                <td>
+                    <button onclick="deleteItem(${data.item_id})">X</button>
+                </td>
+            </tr>
+            `;
+            document.querySelector("tbody").insertAdjacentHTML("beforeend", row);
+        }
+
+        updateTotal();
+    })
+    .catch(() => {
+        showToast("Something went wrong", "error");
+    })
+    .finally(() => {
+
+        if(el){
+            el.style.pointerEvents = "auto";
+            el.style.opacity = "1";
+        }
+
+        // 🔤 back to search automatically
+        document.getElementById("productSearch").focus();
+
+        // ✅ stay in same flow (DO NOT reset index)
+        //searchMode = true;
+
+        isAdding = false;
+    });
+}
+// -------- DELETE ITEM --------
+function deleteItem(itemId){
+
+    fetch(`/pos/delete/${itemId}/`)
+    .then(res => res.json())
+    .then(data => {
+
+        if(data.error){
+            showToast(data.error, "error");
+            return;
+        }
+
+        document.querySelector(`tr[data-id="${itemId}"]`).remove();
+        updateTotal();
+    });
+}
+
+// -------- CHANGE QTY --------
+function changeQty(itemId, change){
+
+    fetch(`/pos/update/${itemId}/`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCSRF()
+        },
+        body: JSON.stringify({ change: change })
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        if(data.error){
+            showToast(data.error, "error");
+            return;
+        }
+
+        let row = document.querySelector(`tr[data-id="${itemId}"]`);
+
+        if(data.deleted){
+            row.remove();
+        }else{
+            row.querySelector(".qty").innerText = data.quantity;
+            row.querySelector(".item-total").innerText = "₹ " + data.item_total;
+        }
+
+        updateTotal();
+    });
+}
+
+// -------- UPDATE TOTAL --------
+function updateTotal(){
+
+    let total = 0;
+
+    document.querySelectorAll(".item-total").forEach(cell => {
+        let price = parseFloat(cell.innerText.replace("₹", "").trim());
+        if(!isNaN(price)) total += price;
+    });
+
+    document.querySelector("h4").innerText = "Total: ₹ " + total.toFixed(2);
+}
+// -------- PRODUCT SEARCH (FINAL FIXED) --------
+document.getElementById("productSearch").addEventListener("keyup", function(e){
+
+    let searchValue = this.value.toLowerCase().trim().replace(/\s+/g, " ");
+    let found = false;
+
+    document.querySelectorAll(".product-card").forEach(card => {
+
+        let productName = card.getAttribute("data-name");
+        let cleanProductName = productName.replace(/\s+/g, "");
+        let cleanSearch = searchValue.replace(/\s+/g, "");
+
+        let nameElement = card.querySelector(".product-name");
+        let originalName = nameElement.getAttribute("data-original");
+
+        let words = searchValue.split(" ").filter(w => w);
+
+ 
+        let splitSearch = cleanSearch.match(/[a-zA-Z]+|\d+/g) || [];
+
+        // 🔥 STRICT split match (each part must exist)
+        let splitMatch =
+            splitSearch.length >= 2 &&
+            splitSearch.every(part => cleanProductName.includes(part));
+
+        // 🔥 STRICT fuzzy (only strong matches)
+        let fuzzyOk = false;
+
+            // 🔥 allow fuzzy only for meaningful input
+            if(cleanSearch.length >= 4){
+
+                let matchCount = 0;
+                let i = 0, j = 0;
+
+                while(i < cleanProductName.length && j < cleanSearch.length){
+                    if(cleanProductName[i] === cleanSearch[j]){
+                        matchCount++;
+                        j++;
+                    }
+                    i++;
+                }
+
+                let ratio = matchCount / cleanSearch.length;
+
+                // 🔥 strict threshold (prevents "pep" → iphone)
+                if(ratio >= 0.85){
+                    fuzzyOk = true;
+                }
+            }
+
+        // ✅ FINAL MATCH (STRICT ORDER)
+        let isMatch =
+            words.every(word => productName.includes(word)) ||        // normal
+            (cleanSearch && cleanProductName.includes(cleanSearch)) ||// exact no-space
+            splitMatch ||                                             // ip15
+            fuzzyOk;                                                  // strict fuzzy
+
+
+        if(isMatch){
+
+            card.parentElement.style.display = "block";
+            found = true;
+
+            // ✅ HIGHLIGHT
+            if(searchValue !== ""){
+
+            let highlighted = originalName;
+
+           
+
+            let parts = [];
+
+            // split "ip15" → ["ip","15"]
+            if(cleanSearch.length > 1){
+                let split = cleanSearch.match(/[a-zA-Z]+|\d+/g);
+                if(split) parts = split;
+            }
+
+            // fallback → normal words
+            if(parts.length === 0){
+                parts = searchValue.split(" ");
+            }
+
+            // clean parts
+            parts = parts.filter(p => p);
+
+            // ✅ escape regex special chars (IMPORTANT FIX)
+            parts = parts.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+            // sort longer first
+            parts.sort((a,b) => b.length - a.length);
+
+            let regex = new RegExp(`(${parts.join("|")})`, "gi");
+
+            // ✅ SAFE highlight (no broken HTML)
+            nameElement.innerHTML = originalName.replace(regex, match => 
+                `<span style="background:yellow;">${match}</span>`
+            );
+
+        }else{
+            nameElement.innerText = originalName;
+        }
+
+        } else {
+            card.parentElement.style.display = "none";
+            nameElement.innerText = originalName; // reset
+        }
+    });
+
+            // ✅ ENTER = instant add first product
+        if(e.key === "Enter"){
+        let cards = getVisibleCards();
+
+        if(cards.length > 0){
+
+            // ✅ switch to product mode (IMPORTANT FIX)
+            searchMode = false;
+
+            // ✅ if nothing selected → use first
+            if(selectedIndex === -1){
+                selectedIndex = 0;
+            }
+
+            highlightCard(cards);
+
+            cards[selectedIndex].click(); // ✅ use current selection
+        }
+        return;
+    }
+
+    let msg = document.getElementById("noProductMsg");
+
+        if(found){
+            msg.classList.add("d-none");
+
+            let cards = getVisibleCards();
+
+            if(cards.length > 0 && searchValue !== ""){
+
+                // 🔥 AUTO SELECT BEST MATCH
+                selectedIndex = getBestMatchIndex(cards, searchValue);
+
+                highlightCard(cards);
+            }
+
+        }else{
+            msg.classList.remove("d-none");
+            selectedIndex = -1;
+        }
+});
+
+
+function getVisibleCards(){
+    return Array.from(document.querySelectorAll(".product-card"))
+        .filter(card => card.parentElement.style.display !== "none");
+}
+
+function getColumns(){
+    return 3; // ✅ fixed: 3 products per row
+}
+function fuzzyMatch(text, search){
+
+    let i = 0;
+    let j = 0;
+
+    while(i < text.length && j < search.length){
+        if(text[i] === search[j]){
+            j++;
+        }
+        i++;
+    }
+
+    return j === search.length;
+}
+function getBestMatchIndex(cards, searchValue){
+
+    let cleanSearch = searchValue.replace(/\s+/g, "");
+    let bestIndex = 0;
+    let bestScore = -1;
+
+    cards.forEach((card, index) => {
+
+        let name = card.getAttribute("data-name");
+        let cleanName = name.replace(/\s+/g, "");
+
+        let score = 0;
+
+        // 🔥 exact match gets highest priority
+        if(cleanName === cleanSearch){
+            score += 100;
+        }
+
+        // 🔥 starts with search
+        if(cleanName.startsWith(cleanSearch)){
+            score += 50;
+        }
+
+        // 🔥 includes search
+        if(cleanName.includes(cleanSearch)){
+            score += 30;
+        }
+
+        // 🔥 STRICT fuzzy (only if most chars match)
+        let matchCount = 0;
+
+        let i = 0, j = 0;
+        while(i < cleanName.length && j < cleanSearch.length){
+            if(cleanName[i] === cleanSearch[j]){
+                matchCount++;
+                j++;
+            }
+            i++;
+        }
+
+        // require at least 70% match
+        let matchRatio = matchCount / cleanSearch.length;
+
+       if(cleanSearch.length >= 3 && matchRatio >= 0.8){
+            score += 10;
+        }
+
+        // 🔥 shorter distance = better
+        score -= Math.abs(cleanName.length - cleanSearch.length);
+
+        if(score > bestScore){
+            bestScore = score;
+            bestIndex = index;
+        }
+    });
+
+    return bestIndex;
+}
+
+function highlightCard(cards){
+
+    document.querySelectorAll(".product-card")
+        .forEach(c => c.classList.remove("active-product"));
+
+    if(selectedIndex >= 0 && cards[selectedIndex]){
+        let card = cards[selectedIndex];
+
+        card.classList.add("active-product");
+        card.scrollIntoView({
+            block: "nearest",
+            behavior: "smooth"
+        });
+    }
+}
+
+// 🔥 KEYBOARD control
+document.addEventListener("keydown", function(e){
+
+    let cards = getVisibleCards();
+    if(cards.length === 0) return;
+
+    let columns = 3; // ✅ MUST BE AT TOP
+
+    // =========================
+    // 🔤 SEARCH MODE
+    // =========================
+    if(searchMode){
+
+        if(e.key === "ArrowDown"){
+            e.preventDefault();
+
+            searchMode = false;
+            selectedIndex = 0;
+            highlightCard(cards);
+        }
+
+        return;
+    }
+
+    // =========================
+    // 🎯 PRODUCT MODE
+    // =========================
+    if(selectedIndex === -1){
+        selectedIndex = 0;
+    }
+
+    // ⬇ DOWN
+    if(e.key === "ArrowDown"){
+        e.preventDefault();
+
+        selectedIndex += columns;
+
+        if(selectedIndex >= cards.length){
+            selectedIndex = cards.length - 1;
+        }
+    }
+
+    // ⬆ UP
+    else if(e.key === "ArrowUp"){
+        e.preventDefault();
+
+        if(selectedIndex < columns){
+            // 🔙 go back to search
+            searchMode = true;
+            selectedIndex = -1;
+
+            document.getElementById("productSearch").focus();
+
+            document.querySelectorAll(".product-card")
+                .forEach(c => c.classList.remove("active-product"));
+
+            return;
+        }
+
+        selectedIndex -= columns;
+    }
+
+    // ➡ RIGHT (FIXED ✅)
+    else if(e.key === "ArrowRight"){
+        e.preventDefault();
+
+        let nextIndex = selectedIndex + 1;
+
+        // 🔥 move to next row automatically
+        if(nextIndex % columns === 0){
+            selectedIndex = nextIndex;
+        }
+        else{
+            selectedIndex = nextIndex;
+        }
+
+        if(selectedIndex >= cards.length){
+            selectedIndex = cards.length - 1;
+        }
+    }
+
+    // ⬅ LEFT (FIXED ✅)
+    else if(e.key === "ArrowLeft"){
+        e.preventDefault();
+
+        let prevIndex = selectedIndex - 1;
+
+        if(prevIndex < 0){
+            selectedIndex = 0;
+        }else{
+            selectedIndex = prevIndex;
+        }
+    }
+    // ⏎ ENTER
+    else if(e.key === "Enter"){
+        e.preventDefault();
+        cards[selectedIndex].click();
+        return;
+    }
+
+    highlightCard(cards);
+});
+
+// 🔤 BACK TO SEARCH MODE WHEN USER CLICKS INPUT
+
+document.getElementById("productSearch").addEventListener("focus", function(){
+    searchMode = true;
+    selectedIndex = -1;
+
+    document.querySelectorAll(".product-card").forEach(c => {
+        c.classList.remove("active-product");
+    });
+});
+</script>
+
+{% endblock %}

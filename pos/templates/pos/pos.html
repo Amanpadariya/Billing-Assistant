@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-0">Point of Sale</h3>
+        <small class="text-muted">Quick billing terminal</small>
+    </div>
+</div>
+
+<a href="{% url 'staffpanel:create_bill' %}" 
+   class="btn btn-primary btn-lg mt-3">
+    <i class="fa-solid fa-bolt me-1"></i>
+    Start New Billing
+</a>
+{% endblock %}

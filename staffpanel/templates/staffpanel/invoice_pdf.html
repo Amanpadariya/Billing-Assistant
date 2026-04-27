@@ -1,0 +1,215 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+<head>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    font-size:12px;
+    color:#333;
+}
+
+.header{
+    width:100%;
+    border-bottom:2px solid #444;
+    padding-bottom:10px;
+}
+
+.store{ width:60%; }
+.invoice-info{ width:40%; text-align:right; }
+
+.items{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+}
+
+.items th{
+    background:#2c7be5;
+    color:white;
+    padding:8px;
+    border:1px solid #ddd;
+}
+
+.items td{
+    padding:8px;
+    border:1px solid #ddd;
+}
+
+.right{ text-align:right; }
+
+.summary{
+    width:40%;
+    float:right;
+    margin-top:15px;
+    border:1px solid #ddd;
+}
+
+.summary td{ padding:8px; }
+
+.total-row{
+    background:#f5f5f5;
+    font-weight:bold;
+}
+
+.status{
+    margin-top:10px;
+    font-weight:bold;
+}
+
+.paid{ color:green; }
+.partial{ color:#0dcaf0; }
+.unpaid{ color:red; }
+
+.qr{
+    text-align:center;
+    margin-top:25px;
+}
+
+.footer{
+    text-align:center;
+    margin-top:40px;
+    font-size:11px;
+    color:#777;
+}
+</style>
+
+</head>
+
+<body>
+
+<!-- HEADER -->
+<table class="header">
+<tr>
+
+<td class="store">
+<img src="{% static 'images/logo.jpg' %}" width="70">
+
+<h2 style="margin:5px 0;">BrainyBeam Store</h2>
+
+<p style="margin:0;">
+Surat, Gujarat<br>
+Phone: +91 9876543210
+</p>
+</td>
+
+<td class="invoice-info">
+<h2 style="color:#2c7be5; margin:0;">INVOICE</h2>
+
+<p>
+<strong>Invoice No:</strong> {{ bill.invoice_number }}<br>
+<strong>Date:</strong> {{ bill.created_at|date:"d M Y" }}
+</p>
+</td>
+
+</tr>
+</table>
+
+<!-- CUSTOMER -->
+<div style="margin-top:15px;">
+<strong>Bill To:</strong><br>
+
+{% if bill.customer_name %}
+{{ bill.customer_name }}
+{% else %}
+{{ bill.customer.name }}
+{% endif %}
+
+<br>
+
+Phone:
+{% if bill.customer_phone %}
+{{ bill.customer_phone }}
+{% else %}
+{{ bill.customer.phone }}
+{% endif %}
+</div>
+
+<!-- ITEMS -->
+<table class="items">
+<thead>
+<tr>
+<th>Item</th>
+<th class="right">Qty</th>
+<th class="right">Price</th>
+<th class="right">Total</th>
+</tr>
+</thead>
+
+<tbody>
+{% for item in items %}
+<tr>
+<td>{{ item.product.name }}</td>
+<td class="right">{{ item.quantity }}</td>
+<td class="right">₹ {{ item.product.price }}</td>
+<td class="right">₹ {{ item.total_price }}</td>
+</tr>
+{% empty %}
+<tr>
+<td colspan="4" style="text-align:center;">No items found</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+<!-- SUMMARY -->
+<table class="summary">
+
+<tr>
+<td>Total</td>
+<td class="right">₹ {{ bill.total_amount }}</td>
+</tr>
+
+<tr>
+<td>Paid</td>
+<td class="right">₹ {{ bill.total_paid }}</td>
+</tr>
+
+<tr>
+<td>Remaining</td>
+<td class="right">₹ {{ bill.remaining_amount }}</td>
+</tr>
+
+</table>
+
+<div style="clear:both;"></div>
+
+<!-- PAYMENT STATUS -->
+<div class="status">
+Status:
+{% if bill.payment_status == "PAID" %}
+    <span class="paid">PAID</span>
+{% elif bill.payment_status == "PARTIAL" %}
+    <span class="partial">PARTIAL</span>
+{% else %}
+    <span class="unpaid">UNPAID</span>
+{% endif %}
+</div>
+
+<!-- QR (ONLY IF NOT PAID) -->
+{% if qr_path and bill.remaining_amount > 0 %}
+<div class="qr">
+<p><strong>Scan to Pay</strong></p>
+
+<img src="{{ qr_path }}" width="130">
+
+<p style="margin-top:5px;">
+Pay ₹ {{ bill.remaining_amount }}
+</p>
+
+<p style="font-size:10px; color:#777;">
+Use any UPI app (GPay / PhonePe / Paytm)
+</p>
+</div>
+{% endif %}
+
+<!-- FOOTER -->
+<div class="footer">
+<p>Thank you for your business!</p>
+<p>This is a computer generated invoice.</p>
+</div>
+
+</body>
+</html>

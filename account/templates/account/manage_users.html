@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <h4 class="mb-0">Manage Users</h4>
+
+    <div>
+        <a href="{% url 'staffpanel:dashboard' %}" class="btn btn-secondary me-2">
+            ← Dashboard
+        </a>
+
+        <a href="{% url 'account:add_user' %}" class="btn btn-primary">
+            <i class="fa-solid fa-user-plus me-1"></i>
+            Add User
+        </a>
+    </div>
+
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+
+        {% if messages %}
+            {% for message in messages %}
+                {% if "updated" in message.tags or "deleted" in message.tags %}
+                    <div class="alert alert-success">{{ message }}</div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Date Joined</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.role }}</td>
+                    <td>{{ user.date_joined }}</td>
+                    <td>
+
+                        <!-- ✏ EDIT -->
+                        <a href="{% url 'account:edit_user' user.id %}" 
+                        class="btn btn-sm btn-warning">
+                        Edit
+                        </a>
+
+                        <!-- ❌ DELETE -->
+                        {% if not user.is_superuser %}
+                        <a href="{% url 'account:delete_user' user.id %}" 
+                        class="btn btn-sm btn-danger"
+                        onclick="return confirm('Delete this user?')">
+                        Delete
+                        </a>
+                        {% endif %}
+
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+</div>
+
+{% endblock %}

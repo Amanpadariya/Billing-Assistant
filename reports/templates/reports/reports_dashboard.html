@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="mb-3">
+    
+    <a href="?range=today"
+       class="btn btn-sm {% if request.GET.range == 'today' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        Today
+    </a>
+
+    <a href="?range=week"
+       class="btn btn-sm {% if request.GET.range == 'week' or not request.GET.range %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+        Last 7 Days
+    </a>
+
+    <a href="?range=month"
+       class="btn btn-sm {% if request.GET.range == 'month' %}btn-dark{% else %}btn-outline-dark{% endif %}">
+        This Month
+    </a>
+
+</div>
+
+<!-- FILTER + EXPORT -->
+<form method="get" class="mb-4">
+    <div class="row align-items-end">
+
+        <div class="col-md-3">
+            <label class="form-label">Start Date</label>
+            <input type="date" name="start_date" class="form-control"
+                   value="{{ start_date|date:'Y-m-d' }}">
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label">End Date</label>
+            <input type="date" name="end_date" class="form-control"
+                   value="{{ end_date|date:'Y-m-d' }}"
+                   min="{{ start_date|date:'Y-m-d' }}">
+        </div>
+
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">
+                Apply
+            </button>
+        </div>
+
+        <div class="col-md-2">
+            <a href="{% url 'reports:export_csv' %}?{% if request.GET.range %}range={{ request.GET.range }}&{% endif %}{% if start_date %}start_date={{ start_date|date:'Y-m-d' }}&{% endif %}{% if end_date %}end_date={{ end_date|date:'Y-m-d' }}{% endif %}"
+               class="btn btn-success w-100">
+                Export CSV
+            </a>
+        </div>
+
+        <div class="col-md-2">
+           <a href="{% url 'reports:export_pdf' %}?{% if request.GET.range %}range={{ request.GET.range }}&{% endif %}{% if start_date %}start_date={{ start_date|date:'Y-m-d' }}&{% endif %}{% if end_date %}end_date={{ end_date|date:'Y-m-d' }}{% endif %}"
+              class="btn btn-danger w-100">
+                Export PDF
+            </a>
+        </div>
+
+    </div>
+</form>
+
+<!-- 🔥 SUMMARY CARDS -->
+<div class="row mb-4 g-3">
+
+    <div class="col-md-3">
+        <div class="card shadow text-center">
+            <div class="card-body">
+                <h6>Total Bills</h6>
+                <h4>{{ total_bills }}</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow text-center">
+            <div class="card-body">
+                <h6>Paid Bills</h6>
+                <h4 class="text-primary">{{ paid_bills }}</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow text-center">
+            <div class="card-body">
+                <h6>Cancelled</h6>
+                <h4 class="text-danger">{{ cancelled_bills }}</h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ FIXED POSITION -->
+    <div class="col-md-3">
+        <div class="card shadow text-center">
+            <div class="card-body">
+                <h6>Pending Bills</h6>
+                <h4 class="text-warning">{{ pending_bills }}</h4>
+            </div>
+        </div>
+    </div>
+ 
+     <div class="col-md-3">
+        <div class="card shadow text-center">
+            <div class="card-body">
+                   <h6>Total Sales</h6>
+                    <h4 class="text-info">₹ {{ total_sales }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow text-center">
+            <div class="card-body">
+                <h6>Total Revenue</h6>
+                <h4 class="text-success">₹ {{ total_revenue }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+    <div class="card shadow text-center">
+        <div class="card-body">
+            <h6>Pending Amount</h6>
+            <h4 class="text-danger">₹ {{ pending_amount }}</h4>
+        </div>
+    </div>
+</div>
+</div>
+
+{% if total_bills == 0 %}
+<div class="text-center text-muted py-5">
+    <i class="fa-solid fa-database fa-2x mb-2"></i>
+    <p>No data available for selected range</p>
+</div>
+{% endif %}
+
+<!-- SALES CHART -->
+<div class="card shadow">
+    <div class="card-body">
+        <h5 class="mb-3">Sales</h5>
+        <canvas id="salesChart" height="100"></canvas>
+    </div>
+</div>
+
+<!-- TOP PRODUCTS -->
+<div class="card shadow mt-4">
+    <div class="card-body">
+        <h5 class="mb-3">🏆 Top Selling Products</h5>
+        <canvas id="productChart" height="100"></canvas>
+    </div>
+</div>
+
+<div class="card shadow mt-4">
+    <div class="card-body">
+        <h5 class="mb-3">💳 Payment Methods</h5>
+        <canvas id="paymentChart" height="100"></canvas>
+    </div>
+</div>
+
+<div class="card shadow mt-4">
+    <div class="card-body">
+        <h5 class="mb-3">🏆 Top Customers</h5>
+        <canvas id="customerChart" height="100"></canvas>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const labels = {{ days|safe }};
+const data = {{ sales|safe }};
+
+new Chart(document.getElementById('salesChart'), {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{
+            data: data,
+            borderWidth: 2,
+            tension: 0.4,
+            fill: false
+        }]
+    }
+});
+
+const productLabels = {{ product_names|safe }};
+const productData = {{ product_sales|safe }};
+
+new Chart(document.getElementById('productChart'), {
+    type: 'bar',
+    data: {
+        labels: productLabels,
+        datasets: [{
+            label: 'Units Sold',
+            data: productData,
+            borderWidth: 1
+        }]
+    },
+    options: {
+        plugins: {
+            legend: { display: false }
+        }
+    }
+});
+
+const methodLabels = {{ method_labels|safe }};
+const methodData = {{ method_data|safe }};
+
+new Chart(document.getElementById('paymentChart'), {
+    type: 'doughnut',
+    data: {
+        labels: methodLabels,
+        datasets: [{
+            data: methodData
+        }]
+    },
+    options: {
+        plugins: {
+            legend: { position: 'bottom' }
+        }
+    }
+});
+
+const customerLabels = {{ customer_labels|safe }};
+const customerData = {{ customer_data|safe }};
+
+new Chart(document.getElementById('customerChart'), {
+    type: 'bar',
+    data: {
+        labels: customerLabels,
+        datasets: [{
+            data: customerData,
+            borderWidth: 1
+        }]
+    },
+    options: {
+        plugins: {
+            legend: { display: false }
+        }
+    }
+});
+</script>
+
+{% endblock %}

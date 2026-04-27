@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+        }
+
+        h2, h4 {
+            margin: 0;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .meta {
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        th, td {
+            padding: 6px;
+            text-align: left;
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        .summary {
+            margin-top: 20px;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h2>BrainyBeam Sales Report</h2>
+    <p>Date Range: {{ start_date }} to {{ end_date }}</p>
+    <p>Generated On: {{ generated_on }}</p>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Bill ID</th>
+            <th>Invoice</th>
+            <th>Customer</th>
+            <th>Date</th>
+            <th class="right">Amount</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for bill in bills %}
+        <tr>
+            <td>{{ bill.id }}</td>
+            <td>{{ bill.invoice_number }}</td>
+            <td>
+                {% if bill.customer_name %}
+                    {{ bill.customer_name }}
+                {% else %}
+                    {{ bill.customer.name }}
+                {% endif %}
+            </td>
+            <td>{{ bill.created_at|date:"Y-m-d" }}</td>
+            <td class="right">₹ {{ bill.total_amount }}</td>
+            <td>{{ bill.payment_status }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="summary">
+    <p class="bold">Total Bills: {{ total_bills }}</p>
+    <p class="bold">Total Revenue: ₹ {{ total }}</p>
+</div>
+
+</body>
+</html>

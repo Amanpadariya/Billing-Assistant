@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+
+    <div>
+        <h4 class="mb-0 fw-semibold">
+            <i class="fa-solid fa-user-plus me-2 text-primary"></i>
+            Add User
+        </h4>
+        <small class="text-muted">Create new staff or cashier account</small>
+    </div>
+
+    <a href="{% url 'account:manage_users' %}" class="btn btn-outline-secondary">
+        <i class="fa-solid fa-arrow-left me-1"></i>
+        Back
+    </a>
+
+</div>
+
+    {% if messages %}
+        {% for message in messages %}
+            {% if "created" in message.tags or "error" in message.tags %}
+                <div class="alert alert-info">{{ message }}</div>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label>Username</label>
+            <input type="text" name="username" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label>Email</label>
+            <input type="email" name="email" class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label>Password</label>
+            <input type="password" name="password" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label>Role</label>
+            <select name="role" class="form-control">
+                <option value="STAFF">Staff</option>
+                <option value="CASHIER">Cashier</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-success w-100 py-2 fw-semibold">
+            <i class="fa-solid fa-check me-1"></i>
+            Create User
+        </button>
+
+    </form>
+
+</div>
+
+{% endblock %}

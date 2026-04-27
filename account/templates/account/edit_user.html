@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container" style="max-width:400px;">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+
+    <div>
+        <h4 class="mb-0 fw-semibold">
+            <i class="fa-solid fa-user-pen me-2 text-warning"></i>
+            Edit User
+        </h4>
+        <small class="text-muted">Update user details</small>
+    </div>
+
+    <a href="{% url 'account:manage_users' %}" class="btn btn-outline-secondary">
+        <i class="fa-solid fa-arrow-left me-1"></i>
+        Back
+    </a>
+
+</div>
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label>Username</label>
+            <input type="text" class="form-control" value="{{ user.username }}" disabled>
+        </div>
+
+        <div class="mb-3">
+            <label>Role</label>
+            <select name="role" class="form-control">
+                <option value="STAFF" {% if user.role == "STAFF" %}selected{% endif %}>Staff</option>
+                <option value="CASHIER" {% if user.role == "CASHIER" %}selected{% endif %}>Cashier</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-success w-100">
+            Update User
+        </button>
+
+    </form>
+
+</div>
+
+{% endblock %}

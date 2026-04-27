@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">
+        <i class="fa-solid fa-file-invoice me-2"></i>
+        All Bills
+    </h4>
+
+    <a href="{% url 'staffpanel:create_bill' %}" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i> Create Bill
+    </a>
+</div>
+
+<div class="card shadow" id="billTable">
+<div class="card-body">
+
+<!-- SEARCH + FILTER + SORT -->
+<div class="row mb-3 align-items-end">
+
+    <!-- SEARCH -->
+    <div class="col-md-4 position-relative">
+        <input type="text"
+               id="billSearch"
+               class="form-control"
+               placeholder="Search bill or customer...">
+    </div>
+
+    <!-- FILTER -->
+    <div class="col-md-3">
+        <form method="get">
+
+            {% if search_query %}
+            <input type="hidden" name="q" value="{{ search_query }}">
+            {% endif %}
+
+            {% if selected_sort %}
+            <input type="hidden" name="sort" value="{{ selected_sort }}">
+            {% endif %}
+
+            <select name="status" class="form-select" onchange="this.form.submit()">
+                <option value="">All Bills</option>
+                <option value="PAID" {% if selected_status == "PAID" %}selected{% endif %}>Paid</option>
+                <option value="PARTIAL" {% if selected_status == "PARTIAL" %}selected{% endif %}>Partial</option>
+                <option value="UNPAID" {% if selected_status == "UNPAID" %}selected{% endif %}>Unpaid</option>
+                <option value="CANCELLED" {% if selected_status == "CANCELLED" %}selected{% endif %}>Cancelled</option>
+                <option value="DRAFT" {% if selected_status == "DRAFT" %}selected{% endif %}>Draft</option>
+            </select>
+        </form>
+    </div>
+
+    <!-- SORT -->
+    <div class="col-md-3">
+        <form method="get">
+
+            {% if search_query %}
+            <input type="hidden" name="q" value="{{ search_query }}">
+            {% endif %}
+
+            {% if selected_status %}
+            <input type="hidden" name="status" value="{{ selected_status }}">
+            {% endif %}
+
+            <select name="sort" class="form-select" onchange="this.form.submit()">
+                <option value="">Newest First</option>
+                <option value="oldest" {% if selected_sort == "oldest" %}selected{% endif %}>Oldest First</option>
+                <option value="date" {% if selected_sort == "date" %}selected{% endif %}>Sort by Date</option>
+            </select>
+
+        </form>
+    </div>
+    {% if search_query or selected_status or selected_sort %}
+    <div class="col-md-2 d-flex align-items-end">
+        <a href="{% url 'staffpanel:bill_list' %}" 
+        class="btn btn-outline-danger w-100">
+            <i class="fa-solid fa-xmark me-1"></i>
+            Clear Filters
+        </a>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- TABLE -->
+<div class="table-responsive">
+<table class="table table-hover align-middle modern-table">
+
+<thead>
+<tr>
+<th>ID</th>
+<th>Customer</th>
+<th>Total</th>
+<th>Paid</th>
+<th>Remaining</th>
+<th>Status</th>
+<th>Date</th>
+<th width="260">Actions</th>
+</tr>
+</thead>
+
+<tbody id="billTableBody">
+    {% include "staffpanel/partials/bill_table_body.html" %}
+</tbody>
+
+</table>
+</div>
+
+</div>
+</div>
+
+<!-- PAGINATION -->
+<nav class="mt-4">
+<ul class="pagination justify-content-center">
+
+{% if page_obj.has_previous %}
+<li class="page-item">
+<a class="page-link"
+href="?page={{ page_obj.previous_page_number }}
+{% if selected_status %}&status={{ selected_status }}{% endif %}
+{% if search_query %}&q={{ search_query }}{% endif %}
+{% if selected_sort %}&sort={{ selected_sort }}{% endif %}
+#billTable">
+Previous
+</a>
+</li>
+{% endif %}
+
+<li class="page-item active">
+<span class="page-link">
+Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+</span>
+</li>
+
+{% if page_obj.has_next %}
+<li class="page-item">
+<a class="page-link"
+href="?page={{ page_obj.next_page_number }}
+{% if selected_status %}&status={{ selected_status }}{% endif %}
+{% if search_query %}&q={{ search_query }}{% endif %}
+{% if selected_sort %}&sort={{ selected_sort }}{% endif %}
+#billTable">
+Next
+</a>
+</li>
+{% endif %}
+
+</ul>
+</nav>
+
+<!-- JS -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    const input = document.getElementById("billSearch");
+    const tableBody = document.getElementById("billTableBody");
+
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("q");
+    if (q) input.value = q;
+
+    function initTooltips() {
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+            new bootstrap.Tooltip(el);
+        });
+    }
+
+    function highlightSearch() {
+        const query = input.value.trim().toLowerCase();
+        if (!query) return;
+
+        document.querySelectorAll(".customer-name").forEach(el => {
+            const text = el.textContent;
+            const regex = new RegExp(`(${query})`, "gi");
+            el.innerHTML = text.replace(regex, '<span class="search-highlight">$1</span>');
+        });
+    }
+
+    function highlightAndScroll() {
+        const hash = window.location.hash;
+        if (!hash) return;
+
+        const target = document.querySelector(hash);
+        if (!target) return;
+
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        target.classList.add("highlight-row");
+
+        setTimeout(() => {
+            target.classList.remove("highlight-row");
+            history.replaceState(null, null, window.location.pathname + window.location.search);
+        }, 3000);
+    }
+
+    initTooltips();
+    highlightSearch();
+    highlightAndScroll();
+
+    let timeout = null;
+
+    input.addEventListener("input", () => {
+
+        clearTimeout(timeout);
+
+        timeout = setTimeout(() => {
+
+            const query = input.value.trim();
+            const url = new URL(window.location.href);
+
+            // 🔥 KEEP SORT + FILTER
+            const currentSort = new URLSearchParams(window.location.search).get("sort");
+            const currentStatus = new URLSearchParams(window.location.search).get("status");
+
+            if (query) {
+                url.searchParams.set("q", query);
+            } else {
+                url.searchParams.delete("q");
+            }
+
+            if (currentSort) url.searchParams.set("sort", currentSort);
+            if (currentStatus) url.searchParams.set("status", currentStatus);
+
+            fetch(url, {
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            })
+            .then(res => res.json())
+            .then(data => {
+                tableBody.innerHTML = data.html;
+
+                initTooltips();
+                highlightSearch();
+                highlightAndScroll();
+
+                window.history.replaceState({}, "", url);
+            });
+
+        }, 300);
+    });
+
+});
+</script>
+
+{% endblock %}

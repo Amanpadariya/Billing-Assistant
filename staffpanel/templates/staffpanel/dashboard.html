@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <h4 class="mb-0 fw-semibold">
+        <i class="fa-solid fa-chart-line me-2 text-primary"></i>
+        Dashboard
+    </h4>
+
+    <div class="d-flex gap-2">
+
+        <a href="{% url 'reports:reports_dashboard' %}" 
+        class="btn btn-dark">
+        <i class="fa-solid fa-chart-pie me-1"></i>
+        Reports
+        </a>
+
+        {% if request.user.role == "ADMIN" %}
+        <a href="{% url 'account:manage_users' %}" 
+        class="btn btn-primary">
+        <i class="fa-solid fa-users me-1"></i>
+        Manage Users
+        </a>
+        {% endif %}
+
+    </div>
+
+</div>
+
+<div class="row g-4">
+
+    <!-- ================= LEFT ================= -->
+    <div class="col-md-9">
+
+        <!-- 🔥 STATS -->
+        <div class="row g-3 mb-4">
+
+            <div class="col-md-3">
+                <div class="card stat-card shadow-sm">
+                    <div>
+                        <h6>Total Customers</h6>
+                        <h3>{{ total_customers }}</h3>
+                    </div>
+                    <div class="icon">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card stat-card shadow-sm">
+                    <div>
+                        <h6>Today's Bills</h6>
+                        <h3>{{ today_bills }}</h3>
+                    </div>
+                    <div class="icon">
+                        <i class="fa-solid fa-calendar-day"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card stat-card success shadow-sm">
+                    <div>
+                        <h6>Paid Bills</h6>
+                        <h3>{{ paid_bills }}</h3>
+                    </div>
+                    <div class="icon">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card stat-card danger shadow-sm">
+                    <div>
+                        <h6>Pending Bills</h6>
+                        <h3>{{ pending_bills_count }}</h3>
+                    </div>
+                    <div class="icon">
+                        <i class="fa-solid fa-hourglass-half"></i>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 💰 REVENUE -->
+        <div class="row g-3 mb-4 align-items-stretch">
+
+            <div class="col-md-4">
+                <div class="card revenue-card shadow-sm">
+                    <h6>Today's Revenue</h6>
+                    <h2>₹ {{ today_sales }}</h2>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card revenue-card green shadow-sm">
+                    <h6>Total Revenue</h6>
+                    <h2>₹ {{ total_revenue }}</h2>
+                </div>
+            </div>
+
+            <!-- ✅ REPLACED TOTAL ORDERS -->
+            <div class="col-md-4">
+                <div class="card revenue-card dark shadow-sm">
+                    <h6>Pending Amount</h6>
+                    <h2>₹ {{ pending_amount }}</h2>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 📊 CHART -->
+        <div class="card chart-card shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">
+                    <i class="fa-solid fa-chart-column me-2"></i>
+                    Sales Overview
+                </h5>
+                <small class="text-muted">Last 7 days</small>
+            </div>
+            <canvas id="salesChart"></canvas>
+        </div>
+
+    </div>
+
+    <!-- ================= RIGHT ================= -->
+    <div class="col-md-3">
+
+        <!-- Welcome Card -->
+        <div class="card shadow-sm mb-4 p-3">
+            <h6>Welcome Back 👋</h6>
+            <p class="text-muted mb-0">Here’s what’s happening today.</p>
+        </div>
+
+        <!-- ⚠️ LOW STOCK -->
+        {% if low_stock_count > 0 %}
+        <div class="card stock-card shadow-sm">
+            <h6>
+                <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                Low Stock
+            </h6>
+           <p class="mb-2">{{ low_stock_count }} products are low in stock</p>
+            <a href="{% url 'products:product_list' %}" class="btn btn-warning w-100 btn-sm">
+                View Products
+            </a>
+        </div>
+        {% endif %}
+
+    </div>
+
+</div>
+
+<!-- Chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const labels = {{ context_days|safe }};
+const data = {{ context_sales|safe }};
+
+new Chart(document.getElementById('salesChart'), {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{
+            data: data,
+            borderWidth: 3,
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        }
+    }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+{% block content %}
+
+
+
+<!-- ✅ HEADER -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0 fw-semibold">
+        <i class="fa-solid fa-file-invoice-dollar me-2 text-primary"></i>
+        Create New Bill
+    </h4>
+</div>
+
+<!-- ✅ MAIN GRID -->
+<div class="row">
+
+    <!-- ================= LEFT SIDE ================= -->
+    <div class="col-md-8">
+
+        <div class="card shadow-sm p-4">
+
+            <form method="post">
+                {% csrf_token %}
+
+                <!-- CUSTOMER SECTION -->
+                <h6 class="section-title mb-3">
+                    <i class="fa-solid fa-user me-1"></i> Customer Details
+                </h6>
+
+                <!-- CUSTOMER TYPE -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Customer Type</label>
+
+                    <div class="d-flex gap-4 mt-1">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="customer_type" value="existing"
+                            {% if request.POST.customer_type == "existing" or not request.POST.customer_type %}checked{% endif %}>
+                            <label class="form-check-label">Existing Customer</label>
+                        </div>
+
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="customer_type" value="walkin"
+                            {% if request.POST.customer_type == "walkin" %}checked{% endif %}>
+                            <label class="form-check-label">Walk-in Customer</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EXISTING -->
+                <div id="existingCustomer">
+                    <div class="mb-3">
+                      
+                        <div class="mb-3 position-relative">
+                            <label class="form-label fw-semibold">Search Customer</label>
+
+                            <!-- 🔍 INPUT -->
+                            <input type="text" id="customerSearch" class="form-control"
+                                placeholder="Type name or phone">
+
+                            <!-- 🔽 RESULTS -->
+                            <div id="customerResults" class="list-group position-absolute w-100"
+                                style="z-index:1000;"></div>
+
+                            <!-- ✅ HIDDEN FIELD -->
+                            <input type="hidden" name="customer" id="selectedCustomer">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WALK-IN -->
+                <div id="walkinCustomer" style="display:none;">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Customer Name</label>
+                        {{ form.customer_name }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Phone</label>
+                        {{ form.customer_phone }}
+                    </div>
+
+                    <!-- SAVE -->
+                    <div class="form-check mt-2">
+                        <input type="checkbox" name="save_customer" id="saveCustomer" class="form-check-input"
+                        {% if request.POST.save_customer %}checked{% endif %}>
+                        <label class="form-check-label">Save Customer</label>
+                    </div>
+
+                    <!-- EXTRA -->
+                    <div id="extraFields" style="display:none;">
+
+                        <div class="mb-3 mt-2">
+                            <label>Email</label>
+                            <input type="email" name="customer_email" class="form-control"
+                            value="{{ request.POST.customer_email }}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label>Address</label>
+                            <textarea name="customer_address" class="form-control">{{ request.POST.customer_address }}</textarea>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- DATE -->
+                <div class="mb-3 mt-3">
+                    <label class="form-label fw-semibold">Date</label>
+                    <input type="datetime-local" name="created_at" class="form-control">
+                </div>
+
+                <hr>
+
+                <!-- BUTTONS -->
+                <div class="d-flex justify-content-between mt-4">
+
+                    <a href="{% url 'staffpanel:bill_list' %}" 
+                       class="btn btn-outline-secondary">
+                       <i class="fa-solid fa-arrow-left me-1"></i>
+                       Cancel
+                    </a>
+
+                    <button type="submit" class="btn btn-success px-4">
+                        <i class="fa-solid fa-check me-1"></i>
+                        Save Bill
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+    <!-- ================= RIGHT SIDE ================= -->
+    <div class="col-md-4">
+    <div class="card shadow-sm p-4 bg-light position-sticky" style="top:80px;">
+
+            <h6 class="mb-3">
+                <i class="fa-solid fa-circle-info me-1"></i>
+                Instructions
+            </h6>
+
+            <ul class="text-muted small mb-0">
+                <li>Select existing customer OR enter walk-in details</li>
+                <li>After saving, you can add products</li>
+                <li>Payments can be added later</li>
+            </ul>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ================= JS ================= -->
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+
+    const existingRadio = document.querySelector("input[value='existing']");
+    const walkinRadio = document.querySelector("input[value='walkin']");
+
+    const existingDiv = document.getElementById("existingCustomer");
+    const walkinDiv = document.getElementById("walkinCustomer");
+
+    const saveCustomer = document.getElementById("saveCustomer");
+    const extraFields = document.getElementById("extraFields");
+
+    function toggleMode(isInitial=false){
+            if(existingRadio.checked){
+                existingDiv.style.display = "block";
+                walkinDiv.style.display = "none";
+
+                // ❗ ONLY CLEAR WHEN USER CHANGES (NOT INITIAL LOAD)
+                if(!isInitial){
+                    document.querySelector("input[name='customer_name']").value = "";
+                    document.querySelector("input[name='customer_phone']").value = "";
+                }
+
+            } else {
+                existingDiv.style.display = "none";
+                walkinDiv.style.display = "block";
+
+                if(!isInitial){
+                    document.querySelector("select[name='customer']").value = "";
+                }
+            }
+        }
+    function toggleExtra(){
+        if(saveCustomer){
+            extraFields.style.display = saveCustomer.checked ? "block" : "none";
+        }
+    }
+
+    // ✅ FORCE STATE ON LOAD (IMPORTANT FIX)
+    if(saveCustomer && saveCustomer.checked){
+        extraFields.style.display = "block";
+    }
+
+    existingRadio.addEventListener("change", () => toggleMode(false));
+    walkinRadio.addEventListener("change", () => toggleMode(false));
+
+    if(saveCustomer){
+        saveCustomer.addEventListener("change", toggleExtra);
+    }
+
+    // detect selected radio on load
+    if(walkinRadio.checked){
+        existingDiv.style.display = "none";
+        walkinDiv.style.display = "block";
+    } else {
+        existingDiv.style.display = "block";
+        walkinDiv.style.display = "none";
+    }
+});
+</script>
+
+<script>
+window.addEventListener("load", function () {
+
+    const select = $('#customerSelect');
+
+    select.select2({
+        width: '100%',
+        placeholder: "Search customer by name or phone",
+        minimumInputLength: 0,   // 🔥 allow typing immediately
+        allowClear: true,
+
+        ajax: {
+            url: "{% url 'staffpanel:customer_search' %}",
+            dataType: 'json',
+            delay: 250,
+
+            data: function (params) {
+                return { q: params.term };
+            },
+
+            processResults: function (data) {
+                return { results: data.results };
+            }
+        }
+    });
+
+    // 🔥 AUTO OPEN + FOCUS
+    select.on('select2:open', function () {
+        setTimeout(function () {
+            document.querySelector('.select2-search__field').focus();
+        }, 0);
+    });
+
+});
+</script>
+<script>
+const searchInput = document.getElementById("customerSearch");
+const resultsBox = document.getElementById("customerResults");
+const hiddenInput = document.getElementById("selectedCustomer");
+
+searchInput.addEventListener("input", function () {
+
+    let query = this.value;
+
+    if (query.length < 2) {
+        resultsBox.innerHTML = "";
+        return;
+    }
+
+    fetch(`{% url 'staffpanel:customer_search' %}?q=${query}`)
+        .then(res => res.json())
+        .then(data => {
+
+            resultsBox.innerHTML = "";
+
+            data.results.forEach(customer => {
+
+                let item = document.createElement("a");
+                item.className = "list-group-item list-group-item-action";
+                item.innerText = customer.text;
+
+                item.onclick = function () {
+                    searchInput.value = customer.text;
+                    hiddenInput.value = customer.id;
+                    resultsBox.innerHTML = "";
+                };
+
+                resultsBox.appendChild(item);
+            });
+        });
+});
+</script>
+
+{% endblock %}
