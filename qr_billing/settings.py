@@ -142,7 +142,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 LOGIN_URL = "/account/login/"
 
-LOGIN_REDIRECT_URL = "/staffpanel/dashboard/"
+LOGIN_REDIRECT_URL = "/account/redirect/"
 
 LOGOUT_REDIRECT_URL = "/accounts/login/"
 
