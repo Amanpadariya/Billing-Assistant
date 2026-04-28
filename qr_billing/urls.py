@@ -3,8 +3,10 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from staffpanel.views import dashboard
+from django.views.generic.base import RedirectView
 
 urlpatterns = [
+    path('', RedirectView.as_view(url='/account/login/'), name='home'),
     path('admin/', admin.site.urls),
     path('account/', include('account.urls')),
     path('', dashboard, name='home'),
