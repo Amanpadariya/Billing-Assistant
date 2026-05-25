@@ -48,9 +48,9 @@ def edit_customer(request, pk):
 def delete_customer(request, pk):
     customer = get_object_or_404(Customer, pk=pk)
 
-    if customer.is_walkin:
-        messages.error(request, "Walk-in customer cannot be deleted.")
-        return redirect("customers:customer_list")
+    # if customer.is_walkin:
+    #     messages.error(request, "Walk-in customer cannot be deleted.")
+    #     return redirect("customers:customer_list")
 
     customer.delete()
     messages.success(request, "Customer deleted successfully.")
